@@ -2,65 +2,58 @@ pipeline {
         agent any
 
         stages {
-            stage('Prepare everything') {
-                parallel {
-                    stage('Allocate rpmbuild space') { 
-                        steps {
-                            sh returnStatus: true,
-                            script:
-                            '''
-                                mkdir -p /mnt/jenkins/rpmbuild/{,BUILD,BUILDROOT,RPMS,SOURCES,SRPMS}
-                            '''
-                        }
-                    }
-
-                    stage('Allocate workspace') { 
-                        steps {
-                            sh returnStatus: true,
-                            script:
-                            '''
-                                mkdir -p /mnt/jenkins/rpmbuild/PACKAGES
-                            '''
-                        }
-                    }
+            stage('allocate diskspace') { 
+                steps {
+                    sh 'mkdir -p /mnt/jenkins/rpmbuild/{,BUILD,BUILDROOT,RPMS,SOURCES,SRPMS}'
                 }
-                    
             }
 
             stage('download release') { 
                 steps {
-                    sh returnStatus: true,
-                    script:
-                    '''
-                        wget -P /mnt/jenkins/rpmbuild/PACKAGES -c https://github.com/c0re100/qBittorrent-Enhanced-Edition/archive/release-4.3.3.10.tar.gz
-                    '''
+                    sh 'wget -P /mnt/jenkins/rpmbuild/SOURCES -c https://github.com/c0re100/qBittorrent-Enhanced-Edition/archive/release-4.3.3.10.tar.gz'
                 }
             }
 
-            stage('Unzip archive') {
+            stage('unzip release') {
                 steps {
-                    sh returnStatus: true,
-                    script:
-                    '''
-                        tar -zxvf /mnt/jenkins/rpmbuild/PACKAGES/release-4.3.3.10.tar.gz -C /mnt/jenkins/rpmbuild/SOURCES
-                    '''
+                    dir('/mnt/jenkins/rpmbuild/SOURCES/') {
+                        sh 'tar -zxvf release-4.3.3.10.tar.gz'
+                    }
+                }
+            }
+
+            stage('remove release') {
+                steps {
+                    dir('/mnt/jenkins/rpmbuild/SOURCES/') {
+                        sh 'rm -rf release-4.3.3.10.tar.gz'
+                    }
+                }
+            }
+
+            stage('rename release dir') {
+                steps {
+                    dir('/mnt/jenkins/rpmbuild/SOURCES/') {
+                        sh 'mv qBittorrent-Enhanced-Edition-* qbittorrent-enhanced-edition-4.3.3.10'
+                    }
+                }
+            }
+
+            stage('repack release') {
+                steps {
+                    dir('/mnt/jenkins/rpmbuild/SOURCES/') {
+                        sh 'tar -czf qbittorrent-enhanced-edition-4.3.3.10.tar.gz qbittorrent-enhanced-edition-4.3.3.10 --remove-files'
+                    }
                 }
             }
 
             stage('Build project') {
                 steps {
-                    sh returnStatus: true,
-                    script:
-                    '''
-                        rpmbuild -bb --define "_topdir /mnt/jenkins/rpmbuild/" qbittorrent.spec
-                    '''
+                    sh 'rpmbuild -bb --define "_topdir /mnt/jenkins/rpmbuild/" qbittorrent.spec'
                 }
             }
         }
 
-    /*
-        Post trigger
-    */
+    // Post trigger
     post {
         always {
             emailext body: '''
