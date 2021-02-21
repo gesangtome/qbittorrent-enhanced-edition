@@ -44,7 +44,7 @@ mv %{name}-%{version} build
 
 pushd build
 sed -i -e 's@Exec=qbittorrent %U@Exec=env TMPDIR=/var/tmp qbittorrent %U@g' dist/unix/org.qbittorrent.qBittorrent.desktop
-sed -i -e 's#ExecStart=@EXPAND_BINDIR@/qbittorrent-nox#env TMPDIR=/var/tmp @EXPAND_BINDIR@/qbittorrent-nox#g' dist/unix/systemd/qbittorrent-nox@.service.in
+sed -i -e 's#ExecStart=@EXPAND_BINDIR@/qbittorrent-nox#ExecStart=env TMPDIR=/var/tmp @EXPAND_BINDIR@/qbittorrent-nox#g' dist/unix/systemd/qbittorrent-nox@.service.in
 cp README.md NEWS AUTHORS TODO Changelog COPYING ..
 popd
 
